@@ -1,0 +1,11 @@
+# Define the sample names
+# samples: ["Unassigned"]
+
+# Working directory path
+data_dir: "/mnt/md1200/epfl_sber/massimo/EUCI_MG/selection_inference"
+
+# Path to results directory
+results_dir: "/mnt/md1200/epfl_sber/massimo/EUCI_MG/selection_inference/sbusi"
+
+# kmer sizes to build for
+kmer: [7]       # needs user input

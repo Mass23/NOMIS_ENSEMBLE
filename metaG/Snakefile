@@ -1,0 +1,41 @@
+"""
+Author: Susheel Bhanu BUSI
+Affiliation: ESB group LCSB UniLU
+Date: [2021-01-21]
+Run: snakemake -s Snakefile
+Latest modification:
+"""
+
+import os, fnmatch
+import glob
+import pandas as pd
+
+configfile:"config.yaml"
+DATA_DIR=config['data_dir']
+RESULTS_DIR=config['results_dir']
+SAMPLES=[line.strip() for line in open("kegg_plus_unassigned_list", 'r')]    # if using a sample list instead of putting them in a config file
+# SAMPLES=config['samples']
+KMER=config['kmer']
+
+###########
+rule all:
+    input:
+        expand(os.path.join(RESULTS_DIR, "results/{sample}_{kmer}mers.txt"), sample=SAMPLES, kmer=KMER)
+
+################################
+# rules for files and analyses #
+################################
+rule kmers:
+    input:
+        fasta=os.path.join(DATA_DIR, "{sample}/{sample}.fasta")
+    output:
+        kmers=os.path.join(RESULTS_DIR, "results/{sample}_{kmer}mers.txt")
+    log:
+        os.path.join(RESULTS_DIR, "logs/{sample}.{kmer}mers.log")
+    conda:
+        os.path.join("envs/khmer.yaml")
+    message:
+        "Extracting {wildcards.kmer}mers from {wildcards.sample}"
+    script:
+        "kmers_khmer.py"
+#        "date && anvi-export-gene-calls -c {input} -o {output} --gene-caller prodigal && date"        
