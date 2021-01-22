@@ -2,7 +2,7 @@
 Author: Susheel Bhanu BUSI
 Affiliation: ESB group LCSB UniLU
 Date: [2021-01-21]
-Run: snakemake -s Snakefile
+Run: snakemake -s Snakefile --use-conda --cores 45 -rp
 Latest modification:
 """
 
@@ -38,4 +38,3 @@ rule kmers:
         "Extracting {wildcards.kmer}mers from {wildcards.sample}"
     script:
         "kmers_khmer.py"
-#        "date && anvi-export-gene-calls -c {input} -o {output} --gene-caller prodigal && date"        
