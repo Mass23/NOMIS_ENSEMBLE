@@ -20,7 +20,8 @@ KMER=config['kmer']
 ###########
 rule all:
     input:
-        expand(os.path.join(RESULTS_DIR, "results/{sample}_{kmer}mers.txt"), sample=SAMPLES, kmer=KMER)
+        expand(os.path.join(RESULTS_DIR, "results/{sample}_{kmer}mers.txt"), sample=SAMPLES, kmer=KMER),
+        os.path.join(RESULTS_DIR, "results/edited_kmers/euci_7mer_subset_100000")
 
 ################################
 # rules for files and analyses #
@@ -37,4 +38,43 @@ rule kmers:
     message:
         "Extracting {wildcards.kmer}mers from {wildcards.sample}"
     script:
-        "kmers_khmer.py"
+        "scripts/kmers_khmer.py"
+
+rule filename:
+    input:
+        rules.kmers.output
+    output:
+        os.path.join(RESULTS_DIR, "results/edited_kmers/edited_{sample}_{kmer}mers.txt")
+    log:
+        os.path.join(RESULTS_DIR, "logs/edited_{sample}.{kmer}mers.log")
+    message:
+        "Adding filename as column and concatenating all files"
+    shell:
+        "(date & sed 's/^/{wildcards.sample}\t/' {input} > {output} && date)"
+
+rule cat:
+    input:
+        expand(os.path.join(RESULTS_DIR, "results/edited_kmers/edited_{sample}_{kmer}mers.txt"), sample=SAMPLES, kmer=KMER)
+    output:
+        os.path.join(RESULTS_DIR, "results/edited_kmers/euci_merged_7mers.txt")
+    log:
+        os.path.join(RESULTS_DIR, "logs/concatenation.kmers.log")
+    message:
+        "Concatenating all kmer files to single file"
+    shell:
+        "(date && cat {input} > {output} && date)"
+
+rule subset:
+    input:
+        rules.cat.output
+    output:
+        os.path.join(RESULTS_DIR, "results/edited_kmers/euci_7mer_subset_100000")
+    params:
+        total=41068843,
+        number=100000
+    log:
+        os.path.join(RESULTS_DIR, "logs/subset.log")
+    message:
+        "Selecting 100000 random lines from the file for massimo"
+    script:
+        "scripts/random_subset.py"
