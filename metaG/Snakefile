@@ -114,6 +114,8 @@ rule rename:
     shell:
          "(date && bbrename.sh in={input} out={output} prefix={wildcards.sample} addprefix=t && date)"
 
+
+# NOTE: Due to a large number of files, concatenated within Snakemake is throwing errors. So manually concatenated the files for the mmseqs2 clustering
 rule fasta:
     input:
         expand(os.path.join(RESULTS_DIR, "results/concat/renamed_{sample}.fasta"), sample=SAMPLES)
@@ -123,8 +125,10 @@ rule fasta:
         os.path.join(RESULTS_DIR, "logs/concatenation.fasta.log")
     message:
         "Concatenating KEGG + Unassigned fasta files for clustering"
-    shell:
-        "(date && cat {input} >> {output} && date)"
+#    shell:
+#        "(date && cat {input} >> {output} && date)"
+     script:
+         "scripts/cat_fasta.sh"
 
 rule mmseqs2_db:
     input:
