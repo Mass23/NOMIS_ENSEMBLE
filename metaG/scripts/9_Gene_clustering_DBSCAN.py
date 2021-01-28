@@ -66,15 +66,15 @@ def CalculateScore(labels, prediction,param):
 full_score_df = pd.DataFrame(columns=['Label','Sensitivity','Specificity','N_cluster','param'])
 
 t0 = time.time()
-for eps in np.logspace(-10,0,20,endpoint=True):
+for eps in np.logspace(-10,0.75,50,endpoint=True):
     print('eps = ' + str(eps))
     for i in range(1,6):
         print('  - iteration: ' + str(i))
-        indexes = np.random.randint(data_array.shape[0], size=5000)
-        data_subset = data_array[indexes,:]
-        labels_subset = labels[indexes]
-        clustering = DBSCAN(eps=eps, min_samples=2,n_jobs=10).fit(data_subset)
-        full_score_df = full_score_df.append(CalculateScore([i for i in labels_subset if i != unassigned_label], clustering.labels_,eps))
+#        indexes = np.random.randint(data_array.shape[0], size=5000)
+#        data_subset = data_array[indexes,:]
+#        labels_subset = labels[indexes]
+        clustering = DBSCAN(eps=eps, min_samples=2,n_jobs=10).fit(data_array)
+        full_score_df = full_score_df.append(CalculateScore([i for i in labels if i != unassigned_label], clustering.labels_,eps))
     print('Done!')
     print(time.time() - t0)
 

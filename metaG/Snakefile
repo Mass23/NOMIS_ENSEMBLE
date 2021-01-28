@@ -84,7 +84,7 @@ rule subset:
 
 rule dbscan:
     input:
-        subset=rules.subset.output
+        subset=rules.cat.output
     output:
         score=os.path.join(RESULTS_DIR, "results/edited_kmers/functional_dbscan_output.csv")
     conda:
@@ -127,8 +127,8 @@ rule fasta:
         "Concatenating KEGG + Unassigned fasta files for clustering"
 #    shell:
 #        "(date && cat {input} >> {output} && date)"
-     script:
-         "scripts/cat_fasta.sh"
+    script:
+        "scripts/cat_fasta.sh"
 
 rule mmseqs2_db:
     input:
@@ -153,7 +153,7 @@ rule mmseqs2_db:
         "(date && "
         # put all proteins together
         # DB, cluster, TSV output
-        "mmseqs createdb --dbtype 1 -v 3 {input} {params.db} && "
+        "mmseqs createdb --dbtype 2 -v 3 {input} {params.db} && "
         "mmseqs linclust --threads {threads} {params.db} {params.cl} {output.tmpdir} && "
         "mmseqs createtsv {params.db} {params.db} {params.cl} {output.tsv} && "
         "date) &> {log}"
