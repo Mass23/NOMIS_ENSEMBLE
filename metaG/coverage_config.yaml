@@ -1,0 +1,15 @@
+# Working directory path
+data_dir: "/mnt/md1200/epfl_sber/massimo/EUCI_MG/selection_inference/sbusi/clusters"
+
+# Path to fastq directory
+fastq_dir: "/mnt/esb-storage-01/NOMIS/euci_fastq"
+
+# Path to assemblies
+assembly_dir: "/mnt/esb-storage-01/NOMIS/euci_assembly"
+
+# Path to results directory
+results_dir: "/mnt/md1200/epfl_sber/massimo/EUCI_MG/selection_inference/sbusi/clusters"
+
+# CoverM parameters
+coverm:
+    threads: 24

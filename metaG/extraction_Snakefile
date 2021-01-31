@@ -18,7 +18,9 @@ SAMPLES=[line.strip() for line in open("cluster_list", 'r')]    # if using a sam
 ###########
 rule all:
     input:
-        expand(os.path.join(RESULTS_DIR, "fasta/Cluster_{sample}.fa"), sample=SAMPLES)
+        expand(os.path.join(RESULTS_DIR, "fasta/Cluster_{sample}.fa"), sample=SAMPLES),
+        expand(os.path.join(RESULTS_DIR, "contigs/Cluster_{sample}_contigs.txt"), sample=SAMPLES),
+        expand(os.path.join(RESULTS_DIR, "results/Cluster_{sample}_coverages.txt"), sample=SAMPLES)
 
 ################################
 # rules for files and analyses #
@@ -38,3 +40,36 @@ rule kmers:
     shell:
         "(date && filterbyname.sh in={input.fasta} out={output} include=t names={input.cluster} substring=f && date)"
 
+rule contigs:
+    input:
+        rules.kmers.input.cluster
+    output:
+        os.path.join(RESULTS_DIR, "contigs/Cluster_{sample}_contigs.txt")
+    log:
+        os.path.join(RESULTS_DIR, "logs/{sample}.contigs.log")
+    message:
+        "Extracting original contig list for {wildcards.sample}"
+    run:
+        df=pd.read_csv(input[0], sep="\t", header=None).assign(clusterID=os.path.basename(input[0]))  # read file and add filename as columns
+        df["clusterID"] = df["clusterID"].str.replace(".txt", "")   # replacing string
+        df.rename(columns={0:'kegg_contig'}, inplace=True)
+        df['contig']=df['kegg_contig']
+        df["contig"] = df["contig"].str.replace("Unassigned_", "").str.replace("_", "_contig_")
+        df = df.reindex(['clusterID','kegg_contig','contig'], axis=1)
+        df.to_csv(output[0], sep="\t", index=False)
+
+rule coverages:
+    input:
+        contigs=rules.contigs.output,
+        coverages=os.path.join(RESULTS_DIR, "coverage/merged_euci_coverages.txt")
+    output:
+        os.path.join(RESULTS_DIR, "results/Cluster_{sample}_coverages.txt")
+    log:
+        os.path.join(RESULTS_DIR, "logs/{sample}.merge_coverage.log")
+    message:
+        "Merging coverage for {wildcards.sample}"
+    run:
+        contigs=pd.read_csv(input.contigs, header=0, sep="\t")
+        coverages=pd.read_csv(input.coverages, header=0, sep="\t")
+        merged=pd.merge(contigs, coverages, on='contig')
+        merged.to_csv(output[0], sep="\t", index=False)
