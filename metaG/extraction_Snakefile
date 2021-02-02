@@ -21,8 +21,9 @@ rule all:
     input:
         expand(os.path.join(RESULTS_DIR, "fasta/Cluster_{sample}.fa"), sample=SAMPLES),
         expand(os.path.join(RESULTS_DIR, "contigs/Cluster_{sample}_contigs.txt"), sample=SAMPLES),
-        os.path.join(RESULTS_DIR, "coverage/merged_euci_coverages.txt"),
-        expand(os.path.join(RESULTS_DIR, "results/Cluster_{sample}_coverages.txt"), sample=SAMPLES)
+#        os.path.join(RESULTS_DIR, "coverage/merged_euci_coverages.txt"),
+#        expand(os.path.join(RESULTS_DIR, "results/Cluster_{sample}_coverages.txt"), sample=SAMPLES),
+        expand(os.path.join(RESULTS_DIR, "tRNA/Cluster_{sample}_tRNA.txt"), sample=SAMPLES)
 
 ################################
 # rules for files and analyses #
@@ -44,7 +45,7 @@ rule fasta_extraction:
 
 rule contigs:
     input:
-        rules.kmers.input.cluster
+        rules.fasta_extraction.input.cluster
     output:
         os.path.join(RESULTS_DIR, "contigs/Cluster_{sample}_contigs.txt")
     log:
@@ -89,3 +90,21 @@ rule coverages:
         coverages=pd.read_csv(input.coverages, header=0, sep="\t")
         merged=pd.merge(contigs, coverages, on='contig')
         merged.to_csv(output[0], sep="\t", index=False)
+
+#################
+# tRNA analyses #
+#################
+rule tRNA:
+    input:
+        rules.fasta_extraction.output
+    output:
+        tab=os.path.join(RESULTS_DIR, "tRNA/Cluster_{sample}_tRNA.txt"),
+        str=os.path.join(RESULTS_DIR, "tRNA/Cluster_{sample}_structure")
+    conda:
+        os.path.join("envs/trnascanse.yaml")
+    log:
+        os.path.join(RESULTS_DIR, "logs/{sample}.tRNA.log")
+    message:
+        "Running tRNA analysis for {wildcards.sample}"
+    shell:
+        "(date && tRNAscan-SE -G -o {output.tab} -f {output.str} {input} && date) &> {log}"
