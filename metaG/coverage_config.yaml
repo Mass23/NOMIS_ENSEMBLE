@@ -13,3 +13,4 @@ results_dir: "/mnt/md1200/epfl_sber/massimo/EUCI_MG/selection_inference/sbusi/cl
 # CoverM parameters
 coverm:
     threads: 24
+    tmp_dir: "/mnt/md1200/epfl_sber/massimo/EUCI_MG/selection_inference/sbusi/clusters/tmp"

@@ -14,18 +14,20 @@ configfile:"extraction_config.yaml"
 DATA_DIR=config['data_dir']
 RESULTS_DIR=config['results_dir']
 SAMPLES=[line.strip() for line in open("cluster_list", 'r')]    # if using a sample list instead of putting them in a config file
+ACCESSION=[line.strip() for line in open("sample_list", 'r')]
 
 ###########
 rule all:
     input:
         expand(os.path.join(RESULTS_DIR, "fasta/Cluster_{sample}.fa"), sample=SAMPLES),
         expand(os.path.join(RESULTS_DIR, "contigs/Cluster_{sample}_contigs.txt"), sample=SAMPLES),
+        os.path.join(RESULTS_DIR, "coverage/merged_euci_coverages.txt"),
         expand(os.path.join(RESULTS_DIR, "results/Cluster_{sample}_coverages.txt"), sample=SAMPLES)
 
 ################################
 # rules for files and analyses #
 ################################
-rule kmers:
+rule fasta_extraction:
     input:
         fasta=os.path.join(DATA_DIR, "../results/concat/renamed_Unassigned.fasta"),
         cluster=os.path.join(DATA_DIR, "Cluster_{sample}.txt")
@@ -58,10 +60,24 @@ rule contigs:
         df = df.reindex(['clusterID','kegg_contig','contig'], axis=1)
         df.to_csv(output[0], sep="\t", index=False)
 
+rule concat:
+    input:
+        expand(os.path.join(RESULTS_DIR, "coverage/{accession}_covstats.txt"), accession=ACCESSION)
+    output:
+        os.path.join(RESULTS_DIR, "coverage/merged_euci_coverages.txt")
+    log:
+        os.path.join(RESULTS_DIR, "logs/concat.coverages.log")
+    message:
+        "Concatenating all coverage values for downstream analyses"
+    shell:
+        "(date && awk FNR-1 {input} > merged_tmp && "
+        "echo -e 'contig\tcoverage' | cat - merged_tmp > out && mv out {output} && date) &> {log}"
+
 rule coverages:
     input:
         contigs=rules.contigs.output,
-        coverages=os.path.join(RESULTS_DIR, "coverage/merged_euci_coverages.txt")
+        coverages=rules.concat.output
+#        os.path.join(RESULTS_DIR, "coverage/merged_euci_coverages.txt")
     output:
         os.path.join(RESULTS_DIR, "results/Cluster_{sample}_coverages.txt")
     log:

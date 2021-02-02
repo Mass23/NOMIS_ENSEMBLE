@@ -34,6 +34,8 @@ rule coverage:
         os.path.join(RESULTS_DIR, "coverage/{sample}_covstats.txt")
     log:
         os.path.join(RESULTS_DIR, "logs/{sample}.coverage.log")
+#    params:
+#        tmp_dir=config["coverm"]["tmp_dir"]
     conda:
         os.path.join("envs/coverm.yaml")
     message:
