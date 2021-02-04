@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Script used to extract individual cluster sequenceIDs into separate files
 
 import os
 import pandas as pd
@@ -11,3 +10,16 @@ df1 = (df.assign(Sequences = df['Sequences'].str.split(',')).explode('Sequences'
 gp = df1.groupby('ClusterID')
 gp_edited = gp[['Sequences']]
 gp_edited.apply(lambda x: x.to_csv(str(x.name) + '.txt', sep='\t', header=False, index=False)) # output multiple files based on common values in column (https://stackoverflow.com/questions/37216230/output-multiple-files-based-on-column-value-python-pandas)
+
+# saving old cluster files before creating new ones
+# mkdir orig_cluster_files && mv *.txt orig_cluster_files
+
+df=pd.read_csv("clusters_min_7_samples.tsv", sep='\t')
+df.drop(df.columns[0], axis=1, inplace=True)
+df.drop(df.columns[1], axis=1, inplace=True)
+new_df = df[~df.Sequence.str.contains("K", na=False)]
+
+gp = new_df.groupby('ClusterID')
+gp_edited = gp[['Sequence']]
+gp_edited.apply(lambda x: x.to_csv(str(x.name) + '.txt', sep='\t', header=False, index=False)) # output multiple files based on common values in column (https://stackoverflow.com/questions/37216230/output-multiple-files-based-on-column-value-python-pandas)
+
