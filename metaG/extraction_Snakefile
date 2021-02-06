@@ -57,7 +57,8 @@ rule contigs:
         df["clusterID"] = df["clusterID"].str.replace(".txt", "")   # replacing string
         df.rename(columns={0:'kegg_contig'}, inplace=True)
         df['contig']=df['kegg_contig']
-        df["contig"] = df["contig"].str.replace("Unassigned_", "").str.replace("_", "_contig_")
+#        df["contig"] = df["contig"].str.replace("Unassigned_", "").str.replace("_", "_contig_")
+        df["contig"] = df["contig"].str.replace("Unassigned_", "").str.split('_').str[-2:].str.join('_contig_')
         df = df.reindex(['clusterID','kegg_contig','contig'], axis=1)
         df.to_csv(output[0], sep="\t", index=False)
 
