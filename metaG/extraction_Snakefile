@@ -21,8 +21,8 @@ rule all:
     input:
         expand(os.path.join(RESULTS_DIR, "fasta/Cluster_{sample}.fa"), sample=SAMPLES),
         expand(os.path.join(RESULTS_DIR, "contigs/Cluster_{sample}_contigs.txt"), sample=SAMPLES),
-#        os.path.join(RESULTS_DIR, "coverage/merged_euci_coverages.txt"),
-#        expand(os.path.join(RESULTS_DIR, "results/Cluster_{sample}_coverages.txt"), sample=SAMPLES),
+        os.path.join(RESULTS_DIR, "coverage/merged_euci_coverages.txt"),
+        expand(os.path.join(RESULTS_DIR, "results/Cluster_{sample}_coverages.txt"), sample=SAMPLES),
         expand(os.path.join(RESULTS_DIR, "tRNA/Cluster_{sample}_tRNA.txt"), sample=SAMPLES)
 
 ################################
