@@ -13,7 +13,7 @@ import pandas as pd
 configfile:"extraction_config.yaml"
 DATA_DIR=config['data_dir']
 RESULTS_DIR=config['results_dir']
-SAMPLES=[line.strip() for line in open("cluster_list_test", 'r')]    # if using a sample list instead of putting them in a config file
+SAMPLES=[line.strip() for line in open("cluster_list", 'r')]    # if using a sample list instead of putting them in a config file
 ACCESSION=[line.strip() for line in open("sample_list", 'r')]
 
 ###########
