@@ -73,7 +73,7 @@ rule concat:
         "Concatenating all coverage values for downstream analyses"
     shell:
         "(date && awk FNR-1 {input} > merged_tmp && "
-        "echo -e 'contig\tcoverage' | cat - merged_tmp > out && mv out {output} && date) &> {log}"
+        "echo -e 'contig\tcoverage' | cat - merged_tmp > out && mv out {output} && rm -rf merged_tmp && date) &> {log}"
 
 rule coverages:
     input:
