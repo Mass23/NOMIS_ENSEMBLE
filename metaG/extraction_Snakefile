@@ -22,13 +22,13 @@ rule all:
         expand(os.path.join(RESULTS_DIR, "fasta/Cluster_{sample}.fa"), sample=SAMPLES),
         expand(os.path.join(RESULTS_DIR, "contigs/Cluster_{sample}_contigs.txt"), sample=SAMPLES),
         os.path.join(RESULTS_DIR, "coverage/merged_euci_coverages.txt"),
-        expand(os.path.join(RESULTS_DIR, "results/Cluster_{sample}_coverages.txt"), sample=SAMPLES),
+        expand(os.path.join(RESULTS_DIR, "coverage/Cluster_{sample}_coverages.txt"), sample=SAMPLES),
         expand(os.path.join(RESULTS_DIR, "tRNA/Cluster_{sample}_tRNA.txt"), sample=SAMPLES),
         expand(os.path.join(RESULTS_DIR, "Stats/Cluster_{sample}.txt"), sample=SAMPLES),
         expand(os.path.join(RESULTS_DIR, "emboss/Cluster_{sample}_consensus.fa"), sample=SAMPLES),
         expand(os.path.join(RESULTS_DIR, "diamond/Cluster_{sample}.tsv"), sample=SAMPLES),
         expand(os.path.join(RESULTS_DIR, "Stats/Cluster_{sample}_len_GC.txt"), sample=SAMPLES),
-        expand(os.path.join(RESULTS_DIR, "Pairwise_identity/Cluster_{sample}.txt"), sample=SAMPLES
+        expand(os.path.join(RESULTS_DIR, "Pairwise_identity/Cluster_{sample}.txt"), sample=SAMPLES)
 
 ################################
 # rules for files and analyses #
@@ -69,7 +69,7 @@ rule contigs:
 
 rule concat:
     input:
-        expand(os.path.join(RESULTS_DIR, "coverage/{accession}_covstats.txt"), accession=ACCESSION)
+        expand(os.path.join(DATA_DIR, "coverage/{accession}_covstats.txt"), accession=ACCESSION)
     output:
         os.path.join(RESULTS_DIR, "coverage/merged_euci_coverages.txt")
     log:
@@ -86,7 +86,7 @@ rule coverages:
         coverages=rules.concat.output
 #        os.path.join(RESULTS_DIR, "coverage/merged_euci_coverages.txt")
     output:
-        os.path.join(RESULTS_DIR, "results/Cluster_{sample}_coverages.txt")
+        os.path.join(RESULTS_DIR, "coverage/Cluster_{sample}_coverages.txt")
     log:
         os.path.join(RESULTS_DIR, "logs/{sample}.merge_coverage.log")
     message:
