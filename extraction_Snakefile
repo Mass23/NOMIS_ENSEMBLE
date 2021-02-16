@@ -1,0 +1,184 @@
+"""
+Author: Susheel Bhanu BUSI
+Affiliation: ESB group LCSB UniLU
+Date: [2021-01-31]
+Run: snakemake -s extraction_Snakefile --use-conda --cores 45 -rp
+Latest modification:
+"""
+
+import os, fnmatch
+import glob
+import pandas as pd
+
+configfile:"extraction_config.yaml"
+DATA_DIR=config['data_dir']
+RESULTS_DIR=config['results_dir']
+SAMPLES=[line.strip() for line in open("cluster_list", 'r')]    # if using a sample list instead of putting them in a config file
+ACCESSION=[line.strip() for line in open("sample_list", 'r')]
+
+###########
+rule all:
+    input:
+        expand(os.path.join(RESULTS_DIR, "fasta/Cluster_{sample}.fa"), sample=SAMPLES),
+        expand(os.path.join(RESULTS_DIR, "contigs/Cluster_{sample}_contigs.txt"), sample=SAMPLES),
+        os.path.join(RESULTS_DIR, "coverage/merged_euci_coverages.txt"),
+        expand(os.path.join(RESULTS_DIR, "results/Cluster_{sample}_coverages.txt"), sample=SAMPLES),
+        expand(os.path.join(RESULTS_DIR, "tRNA/Cluster_{sample}_tRNA.txt"), sample=SAMPLES),
+        expand(os.path.join(RESULTS_DIR, "Stats/Cluster_{sample}.txt"), sample=SAMPLES),
+        expand(os.path.join(RESULTS_DIR, "emboss/Cluster_{sample}_consensus.fa"), sample=SAMPLES),
+        expand(os.path.join(RESULTS_DIR, "diamond/Cluster_{sample}.tsv"), sample=SAMPLES)
+
+################################
+# rules for files and analyses #
+################################
+rule fasta_extraction:
+    input:
+        fasta=os.path.join(DATA_DIR, "../results/concat/concatenated_KEGG.fasta"),
+        cluster=os.path.join(DATA_DIR, "Cluster_{sample}.txt")
+    output:
+        os.path.join(RESULTS_DIR, "fasta/Cluster_{sample}.fa")
+    log:
+        os.path.join(RESULTS_DIR, "logs/{sample}.fasta.log")
+    conda:
+        os.path.join("envs/bbmap.yaml")
+    message:
+        "Extracting fasta sequence for {wildcards.sample}"
+    shell:
+        "(date && filterbyname.sh in={input.fasta} out={output} include=t names={input.cluster} substring=f && date)"
+
+rule contigs:
+    input:
+        rules.fasta_extraction.input.cluster
+    output:
+        os.path.join(RESULTS_DIR, "contigs/Cluster_{sample}_contigs.txt")
+    log:
+        os.path.join(RESULTS_DIR, "logs/{sample}.contigs.log")
+    message:
+        "Extracting original contig list for {wildcards.sample}"
+    run:
+        df=pd.read_csv(input[0], sep="\t", header=None).assign(clusterID=os.path.basename(input[0]))  # read file and add filename as columns
+        df["clusterID"] = df["clusterID"].str.replace(".txt", "")   # replacing string
+        df.rename(columns={0:'kegg_contig'}, inplace=True)
+        df['contig']=df['kegg_contig']
+#        df["contig"] = df["contig"].str.replace("Unassigned_", "").str.replace("_", "_contig_")
+        df["contig"] = df["contig"].str.replace("Unassigned_", "").str.split('_').str[-2:].str.join('_contig_')
+        df = df.reindex(['clusterID','kegg_contig','contig'], axis=1)
+        df.to_csv(output[0], sep="\t", index=False)
+
+rule concat:
+    input:
+        expand(os.path.join(RESULTS_DIR, "coverage/{accession}_covstats.txt"), accession=ACCESSION)
+    output:
+        os.path.join(RESULTS_DIR, "coverage/merged_euci_coverages.txt")
+    log:
+        os.path.join(RESULTS_DIR, "logs/concat.coverages.log")
+    message:
+        "Concatenating all coverage values for downstream analyses"
+    shell:
+        "(date && awk FNR-1 {input} > merged_tmp && "
+        "echo -e 'contig\tcoverage' | cat - merged_tmp > out && mv out {output} && rm -rf merged_tmp && date) &> {log}"
+
+rule coverages:
+    input:
+        contigs=rules.contigs.output,
+        coverages=rules.concat.output
+#        os.path.join(RESULTS_DIR, "coverage/merged_euci_coverages.txt")
+    output:
+        os.path.join(RESULTS_DIR, "results/Cluster_{sample}_coverages.txt")
+    log:
+        os.path.join(RESULTS_DIR, "logs/{sample}.merge_coverage.log")
+    message:
+        "Merging coverage for {wildcards.sample}"
+    run:
+        contigs=pd.read_csv(input[0], header=0, sep="\t")
+        coverages=pd.read_csv(input[1], header=0, sep="\t")
+        merged=pd.merge(contigs, coverages, on='contig')
+        merged.to_csv(output[0], sep="\t", index=False)
+
+#################
+# tRNA analyses #
+#################
+rule tRNA:
+    input:
+        rules.fasta_extraction.output
+    output:
+        tab=os.path.join(RESULTS_DIR, "tRNA/Cluster_{sample}_tRNA.txt"),
+        str=os.path.join(RESULTS_DIR, "tRNA/Cluster_{sample}_structure")
+    conda:
+        os.path.join("envs/trnascanse.yaml")
+    log:
+        os.path.join(RESULTS_DIR, "logs/{sample}.tRNA.log")
+    message:
+        "Running tRNA analysis for {wildcards.sample}"
+    shell:
+        "(date && tRNAscan-SE -G -o {output.tab} -f {output.str} {input} && date) &> {log}"
+
+
+####################
+# Cluster analyses #
+####################
+rule info:
+    input:
+        rules.fasta_extraction.output
+    output:
+        os.path.join(RESULTS_DIR, "Stats/Cluster_{sample}.txt")
+    conda:
+        os.path.join("envs/emboss.yaml")
+    log:
+        os.path.join(RESULTS_DIR, "logs/{sample}.stats.log")
+    message:
+        "Running basic Stats, i.e. length, GC content on {wildcards.sample}"
+    shell:
+        "(date && infoseq {input} -outfile {output} -name -length -pgc -auto -nousa && date) &> {log}"
+
+rule mafft:
+    input:
+        rules.fasta_extraction.output
+    output:
+        os.path.join(RESULTS_DIR, "mafft/Cluster_{sample}.msf")
+    conda:
+        os.path.join(RESULTS_DIR, "envs/mafft.yaml")
+    log:
+        os.path.join(RESULTS_DIR, "logs/{sample}.mafft.log")
+    message:
+        "Running multiple sequence alignment on {wildcards.sample}"
+    shell:
+        "(date && mafft {input} > {output} && date) &> {log}"
+
+rule consensus:
+    input:
+        rules.mafft.output
+    output:
+        os.path.join(RESULTS_DIR, "emboss/Cluster_{sample}_consensus.fa")
+    conda:
+        os.path.join(RESULTS_DIR, "envs/emboss.yaml")
+    log:
+        os.path.join(RESULTS_DIR, "logs/{sample}.emboss.log")
+    message:
+        "Generating consensus sequence for {wildcards.sample}"
+    shell:
+        "(date && cons -sequence {input} -outseq {output} -name Cluster_{wildcards.sample} -auto && date) &> {log}"
+
+rule uniprot:
+    input:
+        fa=rules.consensus.output,
+        db=config["diamond"]["db"]
+    output:
+        daa=os.path.join(RESULTS_DIR, "diamond/Cluster_{sample}.daa"), 
+        tsv=os.path.join(RESULTS_DIR, "diamond/Cluster_{sample}.tsv")
+    conda:
+        os.path.join(RESULTS_DIR, "envs/diamond.yaml")
+    threads:
+        config["diamond"]["threads"]
+    params:
+        outfmt="6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qlen slen"
+    log:
+        os.path.join(RESULTS_DIR, "logs/{sample}.uniprot.log")
+    message:
+        "Running UniProt trembl analyses for {wildcards.sample}"
+    shell:
+        "(date && "
+        "daa={output.daa} && "
+        "diamond blastx -q {input.fa} --db {input.db} --out {output.daa} -p {threads} --outfmt 100 && "
+        "diamond view --daa ${{daa%.*}} --max-target-seqs 1 -p {threads} --outfmt {params.outfmt} --out {output.tsv} && "
+        "date) &> {log}"
