@@ -27,7 +27,8 @@ rule all:
         expand(os.path.join(RESULTS_DIR, "Stats/Cluster_{sample}.txt"), sample=SAMPLES),
         expand(os.path.join(RESULTS_DIR, "emboss/Cluster_{sample}_consensus.fa"), sample=SAMPLES),
         expand(os.path.join(RESULTS_DIR, "diamond/Cluster_{sample}.tsv"), sample=SAMPLES),
-        expand(os.path.join(RESULTS_DIR, "Stats/Cluster_{sample}_len_GC.txt"), sample=SAMPLES)
+        expand(os.path.join(RESULTS_DIR, "Stats/Cluster_{sample}_len_GC.txt"), sample=SAMPLES),
+        expand(os.path.join(RESULTS_DIR, "Pairwise_identity/Cluster_{sample}.txt"), sample=SAMPLES
 
 ################################
 # rules for files and analyses #
@@ -201,3 +202,17 @@ rule stats:
         stat=df.describe()
         stat=stat[['Length', '%GC']]
         stat.to_csv(output[0], sep='\t', index=True, header=True)
+
+rule identity:
+    input:
+        rules.mafft.output
+    output:
+        os.path.join(RESULTS_DIR, "Pairwise_identity/Cluster_{sample}.txt")
+    conda:
+        os.path.join("envs/clustal.yaml")
+    log:
+        os.path.join(RESULTS_DIR, "logs/{sample}.identity.log")
+    message:
+        "Calculating pairwise distances from MSA for {wildcards.sample}"
+    shell:
+        "(date && clustalo -i {input} --distmat-out={output} --full --percent-id && date) &> {log}"
