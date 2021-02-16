@@ -6,3 +6,8 @@ data_dir: "/mnt/md1200/epfl_sber/massimo/EUCI_MG/selection_inference/sbusi/clust
 
 # Path to results directory
 results_dir: "/mnt/md1200/epfl_sber/massimo/EUCI_MG/selection_inference/sbusi/clusters"
+
+# Path to DIAMOND database
+diamond:
+  db: "/mnt/esb-storage-01/nr_trembl/nr_uniprot_trembl.dmnd"
+  threads: 24
