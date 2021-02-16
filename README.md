@@ -1,5 +1,5 @@
-## ROCK samples analyses - NOMIS
-# Repository for analysing ROCK samples from the NOMIS project
+# ROCK samples analyses - NOMIS
+## Repository for analysing ROCK samples from the NOMIS project
 
 - Limited for now to metaG data
 
