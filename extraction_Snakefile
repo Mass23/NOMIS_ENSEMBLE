@@ -26,7 +26,8 @@ rule all:
         expand(os.path.join(RESULTS_DIR, "tRNA/Cluster_{sample}_tRNA.txt"), sample=SAMPLES),
         expand(os.path.join(RESULTS_DIR, "Stats/Cluster_{sample}.txt"), sample=SAMPLES),
         expand(os.path.join(RESULTS_DIR, "emboss/Cluster_{sample}_consensus.fa"), sample=SAMPLES),
-        expand(os.path.join(RESULTS_DIR, "diamond/Cluster_{sample}.tsv"), sample=SAMPLES)
+        expand(os.path.join(RESULTS_DIR, "diamond/Cluster_{sample}.tsv"), sample=SAMPLES),
+        expand(os.path.join(RESULTS_DIR, "Stats/Cluster_{sample}_len_GC.txt"), sample=SAMPLES)
 
 ################################
 # rules for files and analyses #
@@ -182,3 +183,21 @@ rule uniprot:
         "diamond blastx -q {input.fa} --db {input.db} --out {output.daa} -p {threads} --outfmt 100 && "
         "diamond view --daa ${{daa%.*}} --max-target-seqs 1 -p {threads} --outfmt {params.outfmt} --out {output.tsv} && "
         "date) &> {log}"
+
+#########
+# Stats #
+#########
+rule stats:
+    input: 
+        rules.info.output
+    output:
+        os.path.join(RESULTS_DIR, "Stats/Cluster_{sample}_len_GC.txt")
+    log:
+        os.path.join(RESULTS_DIR, "logs/Cluster_{sample}.stats.log")
+    message:
+        "Estimating Mean and SD of sequence lengths for Cluster_{wildcards.sample}"
+    run:
+        df=pd.read_csv(input[0], header=0, delim_whitespace=True)
+        stat=df.describe()
+        stat=stat[['Length', '%GC']]
+        stat.to_csv(output[0], sep='\t', index=True, header=True)
