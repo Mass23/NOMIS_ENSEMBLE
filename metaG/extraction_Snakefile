@@ -185,24 +185,6 @@ rule uniprot:
         "diamond view --daa ${{daa%.*}} --max-target-seqs 1 -p {threads} --outfmt {params.outfmt} --out {output.tsv} && "
         "date) &> {log}"
 
-#########
-# Stats #
-#########
-rule stats:
-    input: 
-        rules.info.output
-    output:
-        os.path.join(RESULTS_DIR, "Stats/Cluster_{sample}_len_GC.txt")
-    log:
-        os.path.join(RESULTS_DIR, "logs/Cluster_{sample}.stats.log")
-    message:
-        "Estimating Mean and SD of sequence lengths for Cluster_{wildcards.sample}"
-    run:
-        df=pd.read_csv(input[0], header=0, delim_whitespace=True)
-        stat=df.describe()
-        stat=stat[['Length', '%GC']]
-        stat.to_csv(output[0], sep='\t', index=True, header=True)
-
 rule identity:
     input:
         rules.mafft.output
@@ -216,3 +198,29 @@ rule identity:
         "Calculating pairwise distances from MSA for {wildcards.sample}"
     shell:
         "(date && clustalo -i {input} --distmat-out={output} --full --percent-id && date) &> {log}"
+
+#########
+# Stats #
+#########
+rule stats:
+    input:
+        rules.info.output,
+        rules.identity.output
+    output:
+        os.path.join(RESULTS_DIR, "Stats/Cluster_{sample}_len_GC.txt")
+    log:
+        os.path.join(RESULTS_DIR, "logs/Cluster_{sample}.stats.log")
+    message:
+        "Estimating Mean, SD of sequence lengths, GC and PID (percent identity) for Cluster_{wildcards.sample}"
+    run:
+        # getting stats from infoseq output, i.e. length and GC
+        df=pd.read_csv(input[0], header=0, delim_whitespace=True)
+        stat=df.describe()
+        stat=stat[['Length', '%GC']]
+
+        # getting PID from MSA files
+        pair=pd.read_csv(input[1], header=None, skiprows=1, delim_whitespace=True)
+        stat['PID']=pair.describe()[1]
+        
+        # writing Stats to file
+        stat.to_csv(output[0], sep='\t', index=True, header=True)
