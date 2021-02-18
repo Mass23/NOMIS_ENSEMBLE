@@ -1,0 +1,43 @@
+# Define sample names
+# samples: ["GL_56_Down", "GL_56_Up", "GL_58_Down", "GL_58_Up", "GL_5_Down", "GL_5_Up", "GL_6_Down", "GL_6_UpB", "GL_6_Up"]
+
+# Directory where fastq files are
+data_dir: "/scratch/users/sbusi/metaG_JULY_2020"
+
+# Directory to save the output to
+results_dir: "/work/projects/nomis/metaG_JULY_2020/coassembly/modified_results"
+
+# deduplicated directory
+dedup_dir: "/work/projects/nomis/metaG_JULY_2020/coassembly/modified_results/dedup"
+
+# Directory for all the conda environments
+env_dir: "/scratch/users/sbusi/metaG_JULY_2020/coassembly/coassembly/envs"
+
+# Number of cpus or threads to use
+threads: 12
+
+# Preprocessing
+fastp:
+    threads: 12
+    min_length: 40
+
+# FastQ QC
+# https://www.bioinformatics.babraham.ac.uk/projects/fastqc/
+fastqc:
+    threads: 12
+    params: "-q -f fastq"
+
+# De-duplication
+clumpify:
+    threads: 24
+    dupedist: 12000
+    groups: 50
+    memory: "600g"
+
+kraken2:
+    db: "/mnt/isilon/projects/ecosystem_biology/databases/kraken2/maxikraken2_1903_140GB/"
+    threads: 8
+
+# Assembly
+megahit:
+    threads: 1

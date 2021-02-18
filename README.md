@@ -11,3 +11,5 @@
   - Expand on the shared metabolic niches of the prokaryotic MAGs
   - Evaluate metabolic network interactions and functional clusters that allow survival in these streams
   - Inter-kingdom (Euk + prok {+ viruses}) metabolic interactions based on gene abundance
+
+- Usage: `snakemake -s Snakefile --use-conda --cores 10 -rp`
