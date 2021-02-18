@@ -1,0 +1,9 @@
+**/.snakemake/
+**/__pycache__/
+slurm-*.out
+*.tmp
+*.log
+*.done
+*.installed
+**/backup
+data_*
