@@ -2,7 +2,8 @@
 Author: Susheel Bhanu BUSI
 Affiliation: ESB group LCSB UniLU
 Date: [2019-06-02]
-Run: snakemake -s snakefile
+Modification on: [2021-01-11]
+Run: snakemake -s Snakefile --use-conda --cores 10 -rp
 Latest modification:
 """
 
