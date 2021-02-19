@@ -27,7 +27,7 @@ rule all:
         expand(os.path.join(RESULTS_DIR, "Stats/Cluster_{sample}.txt"), sample=SAMPLES),
         expand(os.path.join(RESULTS_DIR, "emboss/Cluster_{sample}_consensus.fa"), sample=SAMPLES),
         expand(os.path.join(RESULTS_DIR, "diamond/Cluster_{sample}.tsv"), sample=SAMPLES),
-        expand(os.path.join(RESULTS_DIR, "Stats/Cluster_{sample}_len_GC.txt"), sample=SAMPLES),
+        expand(os.path.join(RESULTS_DIR, "Stats/Cluster_{sample}_len_GC_PID.txt"), sample=SAMPLES),
         expand(os.path.join(RESULTS_DIR, "Pairwise_identity/Cluster_{sample}.txt"), sample=SAMPLES)
 
 ################################
@@ -207,7 +207,7 @@ rule stats:
         rules.info.output,
         rules.identity.output
     output:
-        os.path.join(RESULTS_DIR, "Stats/Cluster_{sample}_len_GC.txt")
+        os.path.join(RESULTS_DIR, "Stats/Cluster_{sample}_len_GC_PID.txt")
     log:
         os.path.join(RESULTS_DIR, "logs/Cluster_{sample}.stats.log")
     message:
