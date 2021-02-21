@@ -26,7 +26,8 @@ rule all:
         expand(os.path.join(RESULTS_DIR, "tRNA/Cluster_{sample}_tRNA.txt"), sample=SAMPLES),
         expand(os.path.join(RESULTS_DIR, "Stats/Cluster_{sample}.txt"), sample=SAMPLES),
         expand(os.path.join(RESULTS_DIR, "emboss/Cluster_{sample}_consensus.fa"), sample=SAMPLES),
-        expand(os.path.join(RESULTS_DIR, "diamond/Cluster_{sample}.tsv"), sample=SAMPLES),
+#        expand(os.path.join(RESULTS_DIR, "diamond/Cluster_{sample}.tsv"), sample=SAMPLES),
+        os.path.join(RESULTS_DIR, "diamond/merged_Cluster.tsv"),
         expand(os.path.join(RESULTS_DIR, "Stats/Cluster_{sample}_len_GC_PID.txt"), sample=SAMPLES),
         expand(os.path.join(RESULTS_DIR, "Pairwise_identity/Cluster_{sample}.txt"), sample=SAMPLES)
 
@@ -161,13 +162,25 @@ rule consensus:
     shell:
         "(date && cons -sequence {input} -outseq {output} -name Cluster_{wildcards.sample} -auto && date) &> {log}"
 
+rule concat_fasta:
+    input:
+        expand(os.path.join(RESULTS_DIR, "emboss/Cluster_{sample}_consensus.fa"), sample=SAMPLES)
+    output:
+        os.path.join(RESULTS_DIR, "emboss/merged_Cluster.fa")
+    log:
+        os.path.join(RESULTS_DIR, "logs/merged_fasta.log")
+    message:
+        "Concatenating all fasta files from all Clusters for running diamond"
+    shell:
+        "(date && cat {input} > {output} && date) &> {log}"
+
 rule uniprot:
     input:
-        fa=rules.consensus.output,
+        fa=rules.concat_fasta.output,
         db=config["diamond"]["db"]
     output:
-        daa=os.path.join(RESULTS_DIR, "diamond/Cluster_{sample}.daa"), 
-        tsv=os.path.join(RESULTS_DIR, "diamond/Cluster_{sample}.tsv")
+        daa=os.path.join(RESULTS_DIR, "diamond/merged_Cluster.daa"), 
+        tsv=os.path.join(RESULTS_DIR, "diamond/merged_Cluster.tsv")
     conda:
         os.path.join("envs/diamond.yaml")
     threads:
@@ -175,9 +188,9 @@ rule uniprot:
     params:
         outfmt="6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qlen slen"
     log:
-        os.path.join(RESULTS_DIR, "logs/{sample}.uniprot.log")
+        os.path.join(RESULTS_DIR, "logs/merged_Cluster.uniprot.log")
     message:
-        "Running UniProt trembl analyses for {wildcards.sample}"
+        "Running UniProt trembl analyses for merged_Cluster fasta"
     shell:
         "(date && "
         "daa={output.daa} && "
