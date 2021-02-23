@@ -24,7 +24,7 @@ DEDUP_DIR=config['dedup_dir']
 rule all: 
     input: 
         expand(os.path.join(DEDUP_DIR, "{sample}_R{reads}.fastq.gz"), reads=["1", "2"], sample=SAMPLES),
-        expand(os.path.join(RESULTS_DIR, "preproc/concat/merged_R{reads}.fastp.fastq.gz"), reads=["1", "2"]),
+#        expand(os.path.join(RESULTS_DIR, "preproc/concat/merged_R{reads}.fastp.fastq.gz"), reads=["1", "2"]),
         expand(os.path.join(RESULTS_DIR, "kraken2/{sample}.kraken.summary.out"), sample=SAMPLES),
         expand(os.path.join(RESULTS_DIR, "headers/{sample}.headers.txt"), sample=SAMPLES),
         expand(os.path.join(RESULTS_DIR, "extracted/{sample}_{read}.fastq"), sample=SAMPLES, read=["R1", "R2"]),
