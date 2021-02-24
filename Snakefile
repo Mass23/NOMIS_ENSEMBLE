@@ -141,7 +141,7 @@ rule headers:
     message:
         "Extracting 'unclassified' read headers"
     shell:
-        "(date && awk '{{if ($3=='unclassified' || $3='Eukaryota') print $2}}' {input} > {output} && date) 2> {log.err} > {log.out}"
+        "(date && awk '{{if ($3 ~ /unclassified/ || $3 ~ /Eukaryota/) print $2}}' {input} > {output} && date) 2> {log.err} > {log.out}"
 
 rule extract_reads:
     input:
