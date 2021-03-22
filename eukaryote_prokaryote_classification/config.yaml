@@ -1,0 +1,20 @@
+# Define the sample names
+samples: ["pro", "euk"]
+
+# Working directory path
+data_dir: "/mnt/data/sbusi/kmer_classifier"
+
+# Path to results directory
+results_dir: "/mnt/data/sbusi/kmer_classifier/results"
+
+# kmer sizes to build for
+kmer: [7]       # needs user input
+
+# GetContigs parameters
+refseq_dir: "/mnt/esb-storage-01/NOMIS/refseq/"
+sample_size: 500000 
+contig_size: 5000
+
+# mmseqs2
+mmseqs2:
+    threads: 8
