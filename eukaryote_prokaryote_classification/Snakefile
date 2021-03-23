@@ -20,7 +20,8 @@ KMER=config['kmer']
 ###########
 rule all:
     input:
-        expand(os.path.join(RESULTS_DIR, "{sample}_{kmer}mers.txt"), sample=SAMPLES, kmer=KMER),
+        expand(os.path.join(RESULTS_DIR, "{sample}/{sample}_500.fasta"), sample=SAMPLES)        
+#        expand(os.path.join(RESULTS_DIR, "{sample}_{kmer}mers.txt"), sample=SAMPLES, kmer=KMER),
 #        expand(os.path.join(RESULTS_DIR, "edited_kmers/edited_{sample}_{kmer}mers.txt"), sample=SAMPLES, kmer=KMER)
 #        expand(os.path.join(RESULTS_DIR, "results/{sample}_{kmer}mers.txt"), sample=SAMPLES, kmer=KMER),
 #        os.path.join(RESULTS_DIR, "results/edited_kmers/euci_7mer_subset_100000"),
@@ -28,30 +29,32 @@ rule all:
 #        os.path.join(RESULTS_DIR, "results/edited_kmers/functional_dbscan_output.csv"),
 #        os.path.join(RESULTS_DIR, "results/mmseqs2/clusters.tsv")
 
+
 ################################
 # rules for files and analyses #
 ################################
 rule getcontigs:
     output:
-        os.path.join(RESULTS_DIR, "{sample}/{sample}_1.fasta")
+        os.path.join(RESULTS_DIR, "{sample}/{sample}_500.fasta")
     log:
         os.path.join(RESULTS_DIR, "logs/getcontigs.{sample}.log")
     params:
         refseq_path=config["refseq_dir"],
         sample_size=config["sample_size"],
         contig_size=config["contig_size"],
-        kmer=config["kmer"]
+        kmer=config["kmer"],
+        cores=config["cores"]
 #    wildcard_constraints:
 #        kmer=KMER, 
 #        sample=SAMPLES
     message:
         "Extracting 500000 contigs with 5000 bp size for {wildcards.sample}"
     script:
-        "scripts/GetContigs_updated.py"
+        "scripts/parallel_getcontigs.py"
 
 rule kmers:
     input:
-        fasta=rules.getcontigs.output
+        fasta=os.path.join(RESULTS_DIR, "{sample}/{sample}_500.fasta")
     output:
         kmers=os.path.join(RESULTS_DIR, "{sample}_{kmer}mers.txt")
     log:

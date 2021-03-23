@@ -36,7 +36,7 @@ logger = logging.getLogger(__file__)
 ##################################################
 def GetContig(arg_list):
     workerid, contig_size, genomes, n_contigs, category = arg_list
-    with open("results/" + str(category) + "/" + str(category) + "_"  + str(count) + ".fasta", "w") as f:
+    with open("results/" + str(category) + "/" + str(category) + "_"  + str(workerid) + ".fasta", "w") as f:
         for i in range(0, n_contigs):
             genome_file = random.sample(genomes, 1)[0]
             with gzip.open(genome_file, "rt") as handle:
@@ -50,7 +50,7 @@ def GetContig(arg_list):
 
                 start_index = np.random.randint(0,len(random_genome_sequence)-contig_size)
                 contigseq=str(random_genome_sequence[start_index:start_index+contig_size])
-                f.write(">" + str(category) + "_" + str(i) + "\n" + str(contigseq) + "\n")
+                f.write(">" + str(category) + "_workerid=" + str(workerid) + "_" + str(i) + "\n" + str(contigseq) + "\n")
 
 def main():
     refseq_path = snakemake.params.refseq_path
@@ -81,10 +81,10 @@ def main():
 #        pro_contig = GetContig(pro_genome_file, contig_size)
        
     n_contigs = 1000
-    pro_workers_list = [[i, contig_size, pro_genomes, n_contigs, 'pro'] for i in range(0,sample_size/n_contigs)]
-    euk_workers_list = [[i, contig_size, euk_genomes, n_contigs, 'euk'] for i in range(0,sample_size/n_contigs)]
+    pro_workers_list = [[i, contig_size, pro_genomes, n_contigs, 'pro'] for i in range(0,sample_size//n_contigs)]
+    euk_workers_list = [[i, contig_size, euk_genomes, n_contigs, 'euk'] for i in range(0,sample_size//n_contigs)]
     
-    n_cores = 20
+    n_cores = snakemake.params.cores
     
     with Pool(n_cores) as p:
         p.map(GetContig, pro_workers_list)
