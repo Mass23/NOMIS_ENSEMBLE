@@ -14,6 +14,7 @@ kmer: [7]       # needs user input
 refseq_dir: "/mnt/esb-storage-01/NOMIS/refseq/"
 sample_size: 500000 
 contig_size: 5000
+cores: 40
 
 # mmseqs2
 mmseqs2:
