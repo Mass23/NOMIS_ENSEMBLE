@@ -34,22 +34,23 @@ logger = logging.getLogger(__file__)
 ##################################################
 # FUNCTIONS
 ##################################################
-def GetContig(workerid, contig_size, genomes, n_contigs):
-    for i in range(0, n_contigs):
-        genome_file = random.sample(genomes, 1)[0]
-        with gzip.open(genome_file, "rt") as handle:
-            parsed_fasta = list(SeqIO.parse(handle, "fasta"))
-            genome_size = False
-            while genome_size == False:
-                random_genome_scaffold = random.sample(parsed_fasta, 1)[0]
-                random_genome_sequence = str(random_genome_scaffold.seq)
-                if len(random_genome_sequence) > contig_size:
-                    genome_size = True
+def GetContig(arg_list):
+    workerid, contig_size, genomes, n_contigs, category = arg_list
+    with open("results/" + str(category) + "/" + str(category) + "_"  + str(count) + ".fasta", "w") as f:
+        for i in range(0, n_contigs):
+            genome_file = random.sample(genomes, 1)[0]
+            with gzip.open(genome_file, "rt") as handle:
+                parsed_fasta = list(SeqIO.parse(handle, "fasta"))
+                genome_size = False
+                while genome_size == False:
+                    random_genome_scaffold = random.sample(parsed_fasta, 1)[0]
+                    random_genome_sequence = str(random_genome_scaffold.seq)
+                    if len(random_genome_sequence) > contig_size:
+                        genome_size = True
 
-            start_index = np.random.randint(0,len(random_genome_sequence)-contig_size)
-            contigseq=str(random_genome_sequence[start_index:start_index+contig_size])
-        with open("results/pro/pro_" + str(count) + ".fasta", "w") as pro_file:
-            file.write(str(count) + "\n" + str(contigseq) + "\n")
+                start_index = np.random.randint(0,len(random_genome_sequence)-contig_size)
+                contigseq=str(random_genome_sequence[start_index:start_index+contig_size])
+                f.write(">" + str(category) + "_" + str(i) + "\n" + str(contigseq) + "\n")
 
 def main():
     refseq_path = snakemake.params.refseq_path
@@ -78,16 +79,16 @@ def main():
 
 #        euk_contig = GetContig(euk_genome_file, contig_size)
 #        pro_contig = GetContig(pro_genome_file, contig_size)
-        
-    os.makedirs(str("results/pro"), exist_ok=True)
-    os.makedirs(str("results/euk"), exist_ok=True)
-
-    with open("results/pro/pro_" + str(count) + ".fasta", "w") as pro_file:
-        pro_file.write(">pro_" + str(count) + "\n" + str(pro_contig) + "\n")
-        
-        with open("results/euk/euk" + str(count) + ".fasta", "w") as euk_file:
-            euk_file.write(">euk_" + str(count) + "\n" + str(euk_contig) + "\n")
-
+       
+    n_contigs = 1000
+    pro_workers_list = [[i, contig_size, pro_genomes, n_contigs, 'pro'] for i in range(0,sample_size/n_contigs)]
+    euk_workers_list = [[i, contig_size, euk_genomes, n_contigs, 'euk'] for i in range(0,sample_size/n_contigs)]
+    
+    n_cores = 20
+    
+    with Pool(n_cores) as p:
+        p.map(GetContig, pro_workers_list)
+        p.map(GetContig, euk_workers_list)
 
 if __name__ == "__main__":
     main()
