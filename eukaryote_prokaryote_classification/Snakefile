@@ -16,11 +16,13 @@ RESULTS_DIR=config['results_dir']
 # SAMPLES=[line.strip() for line in open("kegg_plus_unassigned_list", 'r')]    # if using a sample list instead of putting them in a config file
 SAMPLES=config['samples']
 KMER=config['kmer']
+LIST=[line.strip() for line in open("list", 'r')]
 
 ###########
 rule all:
     input:
-        expand(os.path.join(RESULTS_DIR, "{sample}/{sample}_500.fasta"), sample=SAMPLES)        
+        expand(os.path.join(RESULTS_DIR, "{sample}/{sample}_499.fasta"), sample=SAMPLES),
+        expand(os.path.join(RESULTS_DIR, "kmers/{sample}_{list}_{kmer}mers.txt"), sample=SAMPLES, list=LIST, kmer=KMER)        
 #        expand(os.path.join(RESULTS_DIR, "{sample}_{kmer}mers.txt"), sample=SAMPLES, kmer=KMER),
 #        expand(os.path.join(RESULTS_DIR, "edited_kmers/edited_{sample}_{kmer}mers.txt"), sample=SAMPLES, kmer=KMER)
 #        expand(os.path.join(RESULTS_DIR, "results/{sample}_{kmer}mers.txt"), sample=SAMPLES, kmer=KMER),
@@ -35,7 +37,7 @@ rule all:
 ################################
 rule getcontigs:
     output:
-        os.path.join(RESULTS_DIR, "{sample}/{sample}_500.fasta")
+        os.path.join(RESULTS_DIR, "{sample}/{sample}_499.fasta")
     log:
         os.path.join(RESULTS_DIR, "logs/getcontigs.{sample}.log")
     params:
@@ -54,18 +56,18 @@ rule getcontigs:
 
 rule kmers:
     input:
-        fasta=os.path.join(RESULTS_DIR, "{sample}/{sample}_500.fasta")
+        fasta=os.path.join(RESULTS_DIR, "{sample}/{sample}_{list}.fasta")
     output:
-        kmers=os.path.join(RESULTS_DIR, "{sample}_{kmer}mers.txt")
+        kmers=os.path.join(RESULTS_DIR, "kmers/{sample}_{list}_{kmer}mers.txt")
     log:
-        os.path.join(RESULTS_DIR, "logs/{sample}.{kmer}mers.log")
+        os.path.join(RESULTS_DIR, "logs/{sample}.{list}.{kmer}mers.log")
     conda:
         os.path.join("envs/khmer.yaml")
 #    wildcard_constraints:
 #        kmer=KMER, 
 #        sample=SAMPLES
     message:
-        "Extracting {wildcards.kmer}mers from {wildcards.sample}"
+        "Extracting {wildcards.kmer}mers from {wildcards.sample}_{wildcards.list}"
     script:
         "scripts/kmers_khmer.py"
 
