@@ -23,7 +23,7 @@ rule all:
     input:
         expand(os.path.join(RESULTS_DIR, "{sample}/{sample}_499.fasta"), sample=SAMPLES),
         expand(os.path.join(RESULTS_DIR, "kmers/{sample}_{list}_{kmer}mers.txt"), sample=SAMPLES, list=LIST, kmer=KMER),
-        expand(os.path.join(RESULTS_DIR, "merged/pro_euk_merged_7mers.txt")) 
+        expand(os.path.join(RESULTS_DIR, "merged/{domain}_merged_7mers.txt"), domain=["prokaryotes", "eukaryotes", "pro_euk"]) 
 #        expand(os.path.join(RESULTS_DIR, "{sample}_{kmer}mers.txt"), sample=SAMPLES, kmer=KMER),
 #        expand(os.path.join(RESULTS_DIR, "edited_kmers/edited_{sample}_{kmer}mers.txt"), sample=SAMPLES, kmer=KMER)
 #        expand(os.path.join(RESULTS_DIR, "results/{sample}_{kmer}mers.txt"), sample=SAMPLES, kmer=KMER),
@@ -66,30 +66,24 @@ rule kmers:
     script:
         "scripts/kmers_khmer.py"
 
-#rule file_name:
-#    input:
-#        rules.kmers.output
-#    output:
-#        os.path.join(RESULTS_DIR, "edited_kmers/edited_{sample}_{kmer}mers.txt")
-#    log:
-#        os.path.join(RESULTS_DIR, "logs/edited_{sample}.{kmer}mers.log")
-#    message:
-#        "Adding filename as column and concatenating all files"
-#    shell:
-#        "(date && sed 's/^/{wildcards.sample}\t/' {input} > {output} && date)"
-
 rule cat:
     input:
-        expand(os.path.join(RESULTS_DIR, "kmers/{sample}_{list}_{kmer}mers.txt"), sample=SAMPLES, list=LIST, kmer=KMER)
+        pro=expand(os.path.join(RESULTS_DIR, "kmers/{sample}_{list}_{kmer}mers.txt"), sample=["pro"], list=LIST, kmer=KMER),
+        euk=expand(os.path.join(RESULTS_DIR, "kmers/{sample}_{list}_{kmer}mers.txt"), sample=["euk"], list=LIST, kmer=KMER),
+        all=expand(os.path.join(RESULTS_DIR, "kmers/{sample}_{list}_{kmer}mers.txt"), sample=SAMPLES, list=LIST, kmer=KMER)
     output:
-        os.path.join(RESULTS_DIR, "merged/pro_euk_merged_7mers.txt")
+        pro=os.path.join(RESULTS_DIR, "merged/prokaryotes_merged_7mers.txt"), 
+        euk=os.path.join(RESULTS_DIR, "merged/eukaryotes_merged_7mers.txt"),
+        all=os.path.join(RESULTS_DIR, "merged/pro_euk_merged_7mers.txt")
     log:
         os.path.join(RESULTS_DIR, "logs/concatenation.kmers.log")
     message:
         "Concatenating all kmer files to single file"
     shell:
-        "(date && cat {input} > {output} && date)"
+        "(date && cat {input.pro} > {output.pro} && cat {input.euk} > {output.euk} && cat {input.all} > {output.all} && date)"
 
+
+#TODO
 rule subset:
     input:
         rules.cat.output
@@ -104,21 +98,6 @@ rule subset:
         "Selecting 100000 random lines from the file for massimo"
     script:
         "scripts/random_subset.py"
-
-rule dbscan:
-    input:
-        subset=rules.cat.output
-    output:
-        score=os.path.join(RESULTS_DIR, "results/edited_kmers/functional_dbscan_output.csv")
-    conda:
-        os.path.join("envs/dbscan.yaml")
-    log:
-        os.path.join(RESULTS_DIR, "logs/dbscan.log")
-    message:
-        "Calculating different values of epsilon for clustering"
-    script:
-        "scripts/9_Gene_clustering_DBSCAN.py"
-
 
 ##############
 # Clustering #
