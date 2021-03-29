@@ -1,20 +1,20 @@
 # Define sample names
-# samples: ["GL_56_Down", "GL_56_Up", "GL_58_Down", "GL_58_Up", "GL_5_Down", "GL_5_Up", "GL_6_Down", "GL_6_UpB", "GL_6_Up"]
+#samples: ["GL_R10_GL11_UP_3","GL_R11_GL15_UP_1","GL_R12_GL15_UP_2","GL_R13_GL15_UP_3","GL_R17_GL16_UP_1","GL_R18_GL16_UP_2","GL_R19_GL16_UP_3"]
 
 # Directory where fastq files are
-data_dir: "/scratch/users/sbusi/metaG_JULY_2020"
+data_dir: "/mnt/esb-storage-01/NOMIS/NovaSeq_20200624_NOV395_o7028_DataDelivery/"
 
 # Directory to save the output to
-results_dir: "/work/projects/nomis/metaG_JULY_2020/coassembly/modified_results"
+results_dir: "/mnt/md1200/epfl_sber/greg/coassembly/"
 
 # deduplicated directory
-dedup_dir: "/work/projects/nomis/metaG_JULY_2020/coassembly/modified_results/dedup"
+dedup_dir: "/mnt/md1200/epfl_sber/greg/coassembly/dedup"
 
 # Directory for all the conda environments
-env_dir: "/scratch/users/sbusi/metaG_JULY_2020/coassembly/coassembly/envs"
+env_dir: "/home/gregoire.michoud/NOMIS_ENSEMBLE/envs"
 
 # Number of cpus or threads to use
-threads: 12
+threads: 30
 
 # Preprocessing
 fastp:
@@ -29,15 +29,15 @@ fastqc:
 
 # De-duplication
 clumpify:
-    threads: 24
+    threads: 7
     dupedist: 12000
-    groups: 50
+    groups: auto
     memory: "600g"
 
 kraken2:
-    db: "/mnt/isilon/projects/ecosystem_biology/databases/kraken2/maxikraken2_1903_140GB/"
+    db: "/mnt/esb-storage-01/NOMIS/maxikraken2_1903_140GB/"
     threads: 8
 
 # Assembly
 megahit:
-    threads: 1
+    threads: 50
