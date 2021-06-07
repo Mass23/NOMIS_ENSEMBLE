@@ -41,3 +41,9 @@ kraken2:
 # Assembly
 megahit:
     threads: 50
+
+coverm:
+    threads: 50
+
+concoct:
+    threads: 8

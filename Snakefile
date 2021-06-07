@@ -28,11 +28,13 @@ rule all:
         expand(os.path.join(RESULTS_DIR, "kraken2/{sample}.kraken.summary.out"), sample=SAMPLES),
         expand(os.path.join(RESULTS_DIR, "headers/{sample}.headers.txt"), sample=SAMPLES),
         expand(os.path.join(RESULTS_DIR, "extracted/{sample}_{read}.fastq"), sample=SAMPLES, read=["R1", "R2"]),
-        expand(os.path.join(RESULTS_DIR, "assembly/ASSEMBLY.fasta"))
+        expand(os.path.join(RESULTS_DIR, "assembly/ASSEMBLY.fasta")),
         #expand(os.path.join(RESULTS_DIR, "preproc/{sample}_R1.fastp.fastq.gz"), sample=SAMPLES),
 #        expand(os.path.join(RESULTS_DIR, "qc/{sample}_{rid}.fastp_fastqc.html"), rid=["R1", "R2"], sample=SAMPLES),
 #        expand(os.path.join(RESULTS_DIR, "nonpareil/{sample}/{sample}.fasta"), sample=SAMPLES),
 #        expand(os.path.join(RESULTS_DIR, "metaxa2/{sample}_output/LEVEL-7_{sample}_rarefaction_out"), sample=SAMPLES)
+	expand(os.path.join(RESULTS_DIR, "coverm/")),
+	expand(os.path.join(RESULTS_DIR, "concoct/bins"))
 
 
 #################
@@ -234,7 +236,8 @@ rule assembly_sr_megahit:
 ############
 # Analyses #
 ############
-rule Eukrep_fasta:
+
+rule eukrep_fasta:
     input:
         rules.assembly_sr_megahit.output
     output:
@@ -244,10 +247,89 @@ rule Eukrep_fasta:
         err="logs/eukrep.err.log"
     conda:
         os.path.join(ENV_DIR, "eukrep.yaml")
-    threads:config["threads"]
+    threads:
+        config["threads"]
     shell:
-        "(date && EukRep -i {input} -o {output} --min 2000 -m strict && date) 2> {log.err} > {log.out}"
+        "(date && EukRep -i {input} -o {output} --min 2000 -m strict && date)"
 
+rule coverm:
+    input:
+        ref=rules.eukrep_fasta.output,
+        read1=expand(os.path.join(DEDUP_DIR, "{sample}_R1.fastq.gz"), sample=SAMPLES),
+        read2=expand(os.path.join(DEDUP_DIR, "{sample}_R2.fastq.gz"), sample=SAMPLES)
+    output:
+        os.path.join(RESULTS_DIR, "coverm/")
+    log:
+        out="logs/coverm.out.log",
+        err="logs/coverm.err.log"
+    threads:
+        config["coverm"]["threads"]
+    conda:
+        os.path.join(ENV_DIR, "coverm.yaml")
+    message:
+        "Align short reads against eukaryotic contigs: COVERM"
+    shell:
+        "(date && TMPDIR={RESULTS_DIR} coverm make -o {output} -t {threads} -r {input.ref} -c {input.read1} {input.read2} && date) 2> {log.err} > {log.out}"
+
+
+rule concoct_prepare:
+    input:
+        contigs=rules.eukrep_fasta.output,
+	bam=os.path.join(RESULTS_DIR, "coverm/")
+    output:
+        coverage=os.path.join(RESULTS_DIR, "concoct/input/concoct_coverage_table.tsv"),
+	contigs_cut=os.path.join(RESULTS_DIR, "concoct/input/contigs_10k.fa")
+    log:
+        out="logs/concoct_prepare.out.log",
+        err="logs/concoct_prepare.err.log"
+    conda:
+        os.path.join(ENV_DIR, "concoct.yaml")
+    message:
+        "Metagenomic binning first step: CONCOCT"
+    shell:
+        """
+        cut_up_fasta.py {input.contigs} -c 10000 -o 0 --merge_last -b contigs_10K.bed > {output.contigs_cut}
+        concoct_coverage_table.py contigs_10K.bed {input.bam}/*bam > {output.coverage}
+        """
+
+rule concoct:
+    input:
+        contigs_cut=rules.concoct_prepare.output.contigs_cut,
+        coverage=rules.concoct_prepare.output.coverage
+    output:
+        os.path.join(RESULTS_DIR, "concoct/output"),
+    log:
+        out="logs/concoct.out.log",
+        err="logs/concoct.err.log"
+    conda:
+        os.path.join(ENV_DIR, "concoct.yaml")
+    threads:
+        config["concoct"]["threads"]
+    message:
+        "Metagenomic binning: CONCOCT"
+    shell:
+        """
+        concoct --coverage_file {input.coverage} --composition_file {input.contigs_cut} -t {threads} -o {output}
+        """
+
+rule concoct_fasta:
+    input:
+        clustering=rules.concoct.output,
+        contigs=rules.eukrep_fasta.output
+    output:
+        os.path.join(RESULTS_DIR, "concoct/bins"),
+    log:
+        out="logs/concoct_fasta.out.log",
+        err="logs/concoct_fasta.err.log"
+    conda:
+        os.path.join(ENV_DIR, "concoct.yaml")
+    message:
+        "Metagenomic binning: CONCOCT"
+    shell:
+        """
+        merge_cutup_clustering.py {input.clustering}/clustering_gt1000.csv > {input.clustering}/clustering_merged.csv
+        extract_fasta_bins.py {input.contigs} {input.clustering}/clustering_merged.csv --output_path {output}        
+        """
 
 #####################################
 ##### NONPAREIL & METAXA2 ###########
@@ -304,5 +386,6 @@ rule rarefaction_metaxa2:
         "(date && "
         "metaxa2_rf --threads {threads} -n 7 --resamples 10000 --scale 1000000 -i {input} -o {output} && "
         "date) 2> {log.err} > {log.out}"
+
 
 
