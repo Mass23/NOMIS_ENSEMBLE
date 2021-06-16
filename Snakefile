@@ -269,13 +269,14 @@ rule coverm:
     message:
         "Align short reads against eukaryotic contigs: COVERM"
     shell:
-        "(date && TMPDIR={RESULTS_DIR} coverm make -o {output} -t {threads} -r {input.ref} -c {input.read1} {input.read2} && date) 2> {log.err} > {log.out}"
+        "(date && TMPDIR={RESULTS_DIR} coverm make -o {output} -t {threads} -r {input.ref} -c {input.read1} {input.read2} && date) 2> {log.err} > {log.out}\n"
+	"touch {output}/Done"
 
 
 rule concoct_prepare:
     input:
         contigs=rules.eukrep_fasta.output,
-	bam=os.path.join(RESULTS_DIR, "coverm/")
+	bam=os.path.dirname(os.path.join(RESULTS_DIR, "coverm/Done"))
     output:
         coverage=os.path.join(RESULTS_DIR, "concoct/input/concoct_coverage_table.tsv"),
 	contigs_cut=os.path.join(RESULTS_DIR, "concoct/input/contigs_10k.fa")
