@@ -23,18 +23,16 @@ DEDUP_DIR=config['dedup_dir']
 ###########
 rule all: 
     input: 
-        expand(os.path.join(DEDUP_DIR, "{sample}_R{reads}.fastq.gz"), reads=["1", "2"], sample=SAMPLES),
+#        expand(os.path.join(DEDUP_DIR, "{sample}_R{reads}.fastq.gz"), reads=["1", "2"], sample=SAMPLES),
 #        expand(os.path.join(RESULTS_DIR, "preproc/concat/merged_R{reads}.fastp.fastq.gz"), reads=["1", "2"]),
-        expand(os.path.join(RESULTS_DIR, "kraken2/{sample}.kraken.summary.out"), sample=SAMPLES),
-        expand(os.path.join(RESULTS_DIR, "headers/{sample}.headers.txt"), sample=SAMPLES),
-        expand(os.path.join(RESULTS_DIR, "extracted/{sample}_{read}.fastq"), sample=SAMPLES, read=["R1", "R2"]),
-        expand(os.path.join(RESULTS_DIR, "assembly/ASSEMBLY.fasta")),
-        #expand(os.path.join(RESULTS_DIR, "preproc/{sample}_R1.fastp.fastq.gz"), sample=SAMPLES),
+#        expand(os.path.join(RESULTS_DIR, "kraken2/{sample}.kraken.summary.out"), sample=SAMPLES),
+#        expand(os.path.join(RESULTS_DIR, "headers/{sample}.headers.txt"), sample=SAMPLES),
+#        expand(os.path.join(RESULTS_DIR, "extracted/{sample}_{read}.fastq"), sample=SAMPLES, read=["R1", "R2"]),
+        expand(os.path.join(RESULTS_DIR, "assembly/ASSEMBLY.fasta"))
+#        expand(os.path.join(RESULTS_DIR, "preproc/{sample}_R1.fastp.fastq.gz"), sample=SAMPLES),
 #        expand(os.path.join(RESULTS_DIR, "qc/{sample}_{rid}.fastp_fastqc.html"), rid=["R1", "R2"], sample=SAMPLES),
 #        expand(os.path.join(RESULTS_DIR, "nonpareil/{sample}/{sample}.fasta"), sample=SAMPLES),
 #        expand(os.path.join(RESULTS_DIR, "metaxa2/{sample}_output/LEVEL-7_{sample}_rarefaction_out"), sample=SAMPLES)
-	expand(os.path.join(RESULTS_DIR, "coverm/")),
-	expand(os.path.join(RESULTS_DIR, "concoct/bins"))
 
 
 #################
@@ -42,8 +40,8 @@ rule all:
 #################
 rule fastp_sr:
     input:
-        r1=os.path.join(DATA_DIR, "20200624.A-{sample}_Pool1_R1.fastq.gz"),
-        r2=os.path.join(DATA_DIR, "20200624.A-{sample}_Pool1_R2.fastq.gz")
+        r1=os.path.join(DATA_DIR, "coassembly/{sample}_Pool1_R1.fastq.gz"),
+        r2=os.path.join(DATA_DIR, "coassembly/{sample}_Pool1_R2.fastq.gz")
     output:
         o1=os.path.join(RESULTS_DIR, "preproc/{sample}_R1.fastp.fastq.gz"),
         o2=os.path.join(RESULTS_DIR, "preproc/{sample}_R2.fastp.fastq.gz"),
@@ -166,11 +164,11 @@ rule extract_reads:
 # TODO
 rule concatenate:
     input:
-        read1=expand(os.path.join(DEDUP_DIR, "{sample}_R1.fastq.gz"), sample=SAMPLES),
-        read2=expand(os.path.join(DEDUP_DIR, "{sample}_R2.fastq.gz"), sample=SAMPLES)
+        read1=expand(os.path.join(RESULTS_DIR, "extracted/{sample}_R1.fastq"), sample=SAMPLES),
+        read2=expand(os.path.join(RESULTS_DIR, "extracted/{sample}_R2.fastq"), sample=SAMPLES)
     output:
-        or1=os.path.join(RESULTS_DIR, "preproc/concat/merged_R1.preprocessed.fastq.gz"),
-        or2=os.path.join(RESULTS_DIR, "preproc/concat/merged_R2.preprocessed.fastq.gz")
+        or1=os.path.join(RESULTS_DIR, "preproc/concat/merged_R1.preprocessed.fastq"),
+        or2=os.path.join(RESULTS_DIR, "preproc/concat/merged_R2.preprocessed.fastq")
     log:
         out="logs/concat.out.log",
         err="logs/concat.err.log"
@@ -179,34 +177,25 @@ rule concatenate:
     shell:
         "(date && cat {input.read1} > {output.or1} && cat {input.read2} > {output.or2} && date) 2> {log.err} > {log.out}"
 
-
-rule deduplicate2:
+rule compress:
     input:
-        r1=os.path.join(RESULTS_DIR, "preproc/concat/merged_R1.preprocessed.fastq.gz"),
-        r2=os.path.join(RESULTS_DIR, "preproc/concat/merged_R2.preprocessed.fastq.gz")
+        comp1=rules.concatenate.output.read1, 
+        comp2=rules.concatenate.output.read2
     output:
-        odup1=os.path.join(RESULTS_DIR, "preproc/concat2/merged_R1.preprocessed.fastq.gz"),
-        odup2=os.path.join(RESULTS_DIR, "preproc/concat2/merged_R2.preprocessed.fastq.gz")
-    log:
-        out="logs/dedup2.out.log",
-        err="logs/dedup2.err.log"
-    threads:
-        config["clumpify"]["threads"]
-    conda:
-        os.path.join(ENV_DIR, "bbmap.yaml")
+        out1=os.path.join(RESULTS_DIR, "preproc/concat/merged_R1.preprocessed.fastq.gz"),
+        out2=os.path.join(RESULTS_DIR, "preproc/concat/merged_R2.preprocessed.fastq.gz")
     message:
-        "Removing duplicate reads for easier downstream assembly"
+        "Compressing the fastq files"
     shell:
-        "(date && clumpify.sh in={input.r1} in2={input.r2} out={output.odup1} out2={output.odup2} dupedist={config[clumpify][dupedist]} dedupe=t optical=t threads={threads} groups={config[clumpify][groups]} -Xmx{config[clumpify][memory]} && date) 2> {log.err} > {log.out}"
-
+        "(date && gzip {input.comp1} > {output.out1} && gzip {input.comp2} > {output.out2} && date)"
 
 ############
 # Assembly #
 ############
 rule assembly_sr_megahit:
     input:
-        sr1=os.path.join(RESULTS_DIR, "preproc/concat/merged_R1.preprocessed.fastq.gz"),
-        sr2=os.path.join(RESULTS_DIR, "preproc/concat/merged_R2.preprocessed.fastq.gz")
+        sr1=rules.compress.output.out1,
+        sr2=rules.compress.output.out2
     output:
         os.path.join(RESULTS_DIR, "assembly/ASSEMBLY.fasta")
     log:
@@ -225,7 +214,7 @@ rule assembly_sr_megahit:
 ##        "R1s=$(ls /scratch/users/sbusi/metaG_JULY_2020/coassembly/results/preproc/GL_*R1.fastp.fastq.gz | python -c 'import sys; print ",".join([x.strip() for x in sys.stdin.readlines()])') && "
 ##        "R2s=$(ls /scratch/users/sbusi/metaG_JULY_2020/coassembly/results/preproc/GL_*R2.fastp.fastq.gz | python -c 'import sys; print ",".join([x.strip() for x in sys.stdin.readlines()])') && "
 #        "(date && megahit -1 $ifiles1 -2 $ifiles2 --kmin-1pass -m 60e+10 --k-list 27,37,47,57,67,77,87 --min-contig-len 1000 -t {threads} -o $(dirname {output})/tmp && "
-        "(date && megahit -1 {input.sr1} -2 {input.sr2} --kmin-1pass -m 0.9 --k-list 27,37,47,57,67,77,87 --min-contig-len 1000 -t {threads} -o $(dirname {output})/tmp && "
+        "(date && megahit -1 {input.sr1} -2 {input.sr2} --kmin-1pass -m 60e+10 --k-list 27,37,47,57,67,77,87 --min-contig-len 1000 -t {threads} -o $(dirname {output})/tmp && "
         "cd $(dirname {output}) && "
         "rsync -avP tmp/ . && "
         "ln -sf final.contigs.fa $(basename {output}) && "
@@ -236,8 +225,7 @@ rule assembly_sr_megahit:
 ############
 # Analyses #
 ############
-
-rule eukrep_fasta:
+rule Eukrep_fasta:
     input:
         rules.assembly_sr_megahit.output
     output:
@@ -247,90 +235,10 @@ rule eukrep_fasta:
         err="logs/eukrep.err.log"
     conda:
         os.path.join(ENV_DIR, "eukrep.yaml")
-    threads:
-        config["threads"]
+    threads:config["threads"]
     shell:
-        "(date && EukRep -i {input} -o {output} --min 2000 -m strict && date)"
+        "(date && EukRep -i {input} -o {output} --min 2000 -m strict && date) 2> {log.err} > {log.out}"
 
-rule coverm:
-    input:
-        ref=rules.eukrep_fasta.output,
-        read1=expand(os.path.join(DEDUP_DIR, "{sample}_R1.fastq.gz"), sample=SAMPLES),
-        read2=expand(os.path.join(DEDUP_DIR, "{sample}_R2.fastq.gz"), sample=SAMPLES)
-    output:
-        os.path.join(RESULTS_DIR, "coverm/")
-    log:
-        out="logs/coverm.out.log",
-        err="logs/coverm.err.log"
-    threads:
-        config["coverm"]["threads"]
-    conda:
-        os.path.join(ENV_DIR, "coverm.yaml")
-    message:
-        "Align short reads against eukaryotic contigs: COVERM"
-    shell:
-        "(date && TMPDIR={RESULTS_DIR} coverm make -o {output} -t {threads} -r {input.ref} -c {input.read1} {input.read2} && date) 2> {log.err} > {log.out}\n"
-	"touch {output}/Done"
-
-
-rule concoct_prepare:
-    input:
-        contigs=rules.eukrep_fasta.output,
-	bam=os.path.dirname(os.path.join(RESULTS_DIR, "coverm/Done"))
-    output:
-        coverage=os.path.join(RESULTS_DIR, "concoct/input/concoct_coverage_table.tsv"),
-	contigs_cut=os.path.join(RESULTS_DIR, "concoct/input/contigs_10k.fa")
-    log:
-        out="logs/concoct_prepare.out.log",
-        err="logs/concoct_prepare.err.log"
-    conda:
-        os.path.join(ENV_DIR, "concoct.yaml")
-    message:
-        "Metagenomic binning first step: CONCOCT"
-    shell:
-        """
-        cut_up_fasta.py {input.contigs} -c 10000 -o 0 --merge_last -b contigs_10K.bed > {output.contigs_cut}
-        concoct_coverage_table.py contigs_10K.bed {input.bam}/*bam > {output.coverage}
-        """
-
-rule concoct:
-    input:
-        contigs_cut=rules.concoct_prepare.output.contigs_cut,
-        coverage=rules.concoct_prepare.output.coverage
-    output:
-        os.path.join(RESULTS_DIR, "concoct/output"),
-    log:
-        out="logs/concoct.out.log",
-        err="logs/concoct.err.log"
-    conda:
-        os.path.join(ENV_DIR, "concoct.yaml")
-    threads:
-        config["concoct"]["threads"]
-    message:
-        "Metagenomic binning: CONCOCT"
-    shell:
-        """
-        concoct --coverage_file {input.coverage} --composition_file {input.contigs_cut} -t {threads} -o {output}
-        """
-
-rule concoct_fasta:
-    input:
-        clustering=rules.concoct.output,
-        contigs=rules.eukrep_fasta.output
-    output:
-        os.path.join(RESULTS_DIR, "concoct/bins"),
-    log:
-        out="logs/concoct_fasta.out.log",
-        err="logs/concoct_fasta.err.log"
-    conda:
-        os.path.join(ENV_DIR, "concoct.yaml")
-    message:
-        "Metagenomic binning: CONCOCT"
-    shell:
-        """
-        merge_cutup_clustering.py {input.clustering}/clustering_gt1000.csv > {input.clustering}/clustering_merged.csv
-        extract_fasta_bins.py {input.contigs} {input.clustering}/clustering_merged.csv --output_path {output}        
-        """
 
 #####################################
 ##### NONPAREIL & METAXA2 ###########
@@ -387,6 +295,5 @@ rule rarefaction_metaxa2:
         "(date && "
         "metaxa2_rf --threads {threads} -n 7 --resamples 10000 --scale 1000000 -i {input} -o {output} && "
         "date) 2> {log.err} > {log.out}"
-
 
 
